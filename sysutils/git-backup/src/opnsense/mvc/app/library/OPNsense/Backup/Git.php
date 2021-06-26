@@ -57,7 +57,7 @@ class Git extends Base implements IBackupProvider
              "name" => "url",
              "type" => "text",
              "label" => gettext("URL"),
-             "help" => gettext("Target location, which defined transport protocol, such as ssh://server/project.git or https://server/project.git."),
+             "help" => gettext("Target location, which defined transport protocol, such as ssh://server/project.git, https://server/project.git or git://server/project.git."),
              "value" => null
            ],
            [
@@ -157,6 +157,8 @@ class Git extends Base implements IBackupProvider
         if (stripos(trim((string)$mdl->url), 'http') === 0) {
             $cred = urlencode((string)$mdl->user) . ":" . urlencode((string)$mdl->password);
             $url = substr($url, 0, $pos + 2) . "{$cred}@" . substr($url, $pos + 2);
+        } elseif (stripos(trim((string)$mdl->url), 'git') === 0 ) {
+            $url = urlencode((string)$mdl->user) . "@" . substr($url, $pos + 2);
         } else {
             $url = substr($url, 0, $pos + 2) . urlencode((string)$mdl->user) . "@" . substr($url, $pos + 2);
         }
