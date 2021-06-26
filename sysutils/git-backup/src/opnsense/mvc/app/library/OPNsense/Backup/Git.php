@@ -75,6 +75,13 @@ class Git extends Base implements IBackupProvider
              "value" => null
            ],
            [
+             "name" => "password_encryption",
+             "type" => "password",
+             "label" => gettext("Encryption Password (Optional)"),
+             "help" => gettext("A password to encrypt your configuration"),
+             "value" => null
+           ],
+           [
              "name" => "user",
              "type" => "text",
              "label" => gettext("User Name"),

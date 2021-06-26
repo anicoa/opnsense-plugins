@@ -25,7 +25,8 @@ import os
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-
+import tempfile
+import base64
 
 if len(sys.argv) > 1:
     commit_msg =  "unknown change"
@@ -43,6 +44,7 @@ if len(sys.argv) > 1:
             './revision/description': '',
             './revision/username': 'unknown',
             './revision/time': '0',
+            './system/backup/git/password_encryption': '',
         }
         metadata = dict()
         for key in metadata_fields:
@@ -69,7 +71,32 @@ if len(sys.argv) > 1:
 
         # snapshot provided config.xml into git staging and commit with extracted data
         os.chdir('/conf/backup/git/')
-        subprocess.run(['cp', sys.argv[1], '/conf/backup/git/config.xml'])
+        if not metadata['./system/backup/git/password_encryption'] == '' :
+            configfile = open(sys.argv[1], 'r')
+            configdec = tempfile.NamedTemporaryFile(mode='w')
+            configdec.write(configfile.read())
+            configenc = tempfile.NamedTemporaryFile(mode='rb')
+            subprocess.run(['/usr/local/bin/openssl', 'enc', '-e', '-aes-256-cbc', '-md', 'md5', '-in', configdec.name, '-out', configenc.name, '-pass', 'pass:%s'%(metadata['./system/backup/git/password_encryption'])],stdout=subprocess.DEVNULL, stderr=su
+bprocess.DEVNULL)
+            version = subprocess.run(['opnsense-version', '-Nv'],capture_output=True, text=True)
+            configencfinal = tempfile.NamedTemporaryFile(delete=False,mode='w')
+            configencfinal.write("---- BEGIN config.xml ----\n")
+            configencfinal.write('Version: %s' % version.stdout)
+            configencfinal.write("Cipher: AES-256-CBC\n")
+            configencfinal.write("Hash: MD5\n\n")
+            fn = configencfinal.name
+            configencfinal.close()
+            configencfinal = open(fn,'ab')
+            configencfinal.write(base64.encodebytes(configenc.read()))
+            configencfinal.close()
+            configencfinal = open(fn,'a')
+            configencfinal.write("---- END config.xml ----\n")
+            configencfinal.close()
+            subprocess.run(['mv', configencfinal.name, '/conf/backup/git/config.xml'])
+            configenc.close()
+            configdec.close()
+        else:
+            subprocess.run(['cp', sys.argv[1], '/conf/backup/git/config.xml'])
         subprocess.run(['/usr/local/bin/git', 'add', 'config.xml'])
         message = "%s @ %s (%s)" % (metadata['./revision/description'], revdate, metadata['./revision/username'])
         subprocess.run(['/usr/local/bin/git', 'commit', '--author', "%s<%s>" % (fullname, user_email), '-m', message])

@@ -36,6 +36,9 @@
         <privkey type="TextField">
             <Required>N</Required>
         </privkey>
+        <password_encryption type="TextField">
+            <Required>N</Required>
+        </password_encryption>
         <user type="TextField">
           <Constraints>
               <check001>
